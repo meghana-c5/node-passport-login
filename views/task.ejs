@@ -1,0 +1,98 @@
+<div>
+  <div class="row">
+    <div class="col-md-8">
+      <textarea id="code-screen"></textarea>
+    </div>
+    <div class="col-md-4" id="chatbox">
+      <div class="card card-primary">
+        <div class="card-header">CHAT ROOM</div>
+        <div class="card-body">
+          <ul
+            class="media-list"
+            style="height: 200px; overflow-y: scroll"
+            id="chatbox-listMessages"
+          ></ul>
+        </div>
+        <div class="card-footer">
+          <div class="input-group">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Enter message"
+              id="userMessage"
+            />
+            <span class="input-group-btn">
+              <button
+                type="button"
+                class="btn btn-priary"
+                onclick="sendMessage()"
+              >
+                SEND
+              </button>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.25.0/codemirror.min.js"
+  integrity="sha512-ynXrDC1C/24meHduKhg/aPPd5xL1PBd3FKffQK8v4mXhBJUmf5dE00zzPhIi18NAGHoCp0VVWWWZa1FMTPNpJQ=="
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.25.0/mode/javascript/javascript.min.js"
+  integrity="sha512-bUk2sux3P7uLquCvq468k9PZKhxds682+NJUbMr288xoDrPPHHZH9H9CsZDJhEdgUR/2OVaAyi9YwygcAXWLhw=="
+  crossorigin="anonymous"
+></script>
+<script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+<script>
+  var socket = io('/');
+  var editor = CodeMirror.fromTextArea(document.getElementById('code-screen'), {
+    lineNumbers: true,
+    theme: 'monokai',
+  });
+
+  var username = $('#chatbox-username').val();
+  if (username === '') {
+    var userId = prompt('Please enter username', 'Your name');
+    username = userId;
+    $('#chatbox-username').text(username);
+    var peer = new Peer(undefined, {
+      // When deploying to production, uncomment the following lines! Update the key if necessary.
+      host: '/',
+      // path: '/peerjs',
+      port: '3001',
+      // secure: true,
+      // debug: true
+    });
+    var roomId = $('#roomId').val();
+    peer.on('open', (id) => {
+      socket.emit('joinRoom', { room: roomId, username: username, user: id });
+    });
+
+    var userMessage = function (name, text) {
+      return (
+        '<li class="media"> <div class="media-body"><div class="media">' +
+        '<div class="media-body"/>' +
+        '<b>' +
+        name +
+        '</b> : ' +
+        text +
+        '<hr/></div></div></div></li>'
+      );
+    };
+  }
+
+  var sendMessage = function () {
+    var userMessage = $('#userMessage').val();
+    socket.emit('chatMessage', { message: userMessage, username: username });
+    $('#userMessage').val('');
+  };
+
+  socket.on('chatMessage', function (data) {
+    $('#chatbox-listMessages').append(userMessage(data.username, data.message));
+  });
+</script>
